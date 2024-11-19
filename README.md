@@ -81,6 +81,12 @@ After deployment, update the index.html file in the S3 bucket to reflect the lat
 ./update_index.sh
 ```
 
+### Step 5: Got to s3 Bucket URL
+- Go to s3 click on the bucket you created for this process
+- Click on the properties tab
+- Scroll to the bottom of the page
+- Click s3 bucket link
+
 ## Testing
 
 ### Step 1: Test the Lambda Functions
