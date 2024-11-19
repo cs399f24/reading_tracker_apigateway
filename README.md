@@ -4,6 +4,7 @@
 
 This project implements a web application where users can search for books using the Google Books API and store selected books in a DynamoDB table. The application serves a frontend hosted in an S3 bucket, with a backend implemented using Cloud9, AWS Lambda functions, API Gateway, and DynamoDB for data storage. The architecture is serverless, with Lambda functions handling book search, saving, and shelving operations.
 
+
 ## Developer Setup
 
 ### Step 1: Clone the Repository
@@ -99,5 +100,7 @@ If you need to tear down the setup, start by deleting the API Gateway.
 ```
 ./delete_api.sh
 ```
+## NOTE
 
+Creation and modification of s3 Bucket and the Dynamodb table so that the hardcoded scripts work
 
