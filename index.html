@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books API Example</title>
+    <script>
+        // Update this with your API Gateway endpoint
+        const server = 'https://okzhf18wyk.execute-api.us-east-1.amazonaws.com/dev';
+
+        // Handle response from Google Books API search
+        function handleResponse(response) {
+            const contentDiv = document.getElementById("content");
+            contentDiv.innerHTML = ""; // Clear previous results
+
+            if (response.items) {
+                response.items.forEach(item => {
+                    const title = item.volumeInfo.title || 'No Title Available';
+                    const authors = item.volumeInfo.authors ? item.volumeInfo.authors.join(', ') : 'Unknown Author';
+                    const pageCount = item.volumeInfo.pageCount || 'No page count available';
+                    const description = item.volumeInfo.description || 'No description available';
+                    const isbn = item.volumeInfo.industryIdentifiers ? item.volumeInfo.industryIdentifiers[0].identifier : 'No ISBN available';
+
+                    // Populate book details
+                    contentDiv.innerHTML += `
+                        <div class="book-result">
+                            <h3>${title}</h3>
+                            <p><strong>Author(s):</strong> ${authors}</p>
+                            <p><strong>Page Count:</strong> ${pageCount}</p>
+                            <p><strong>Description:</strong> ${description}</p>
+                            <p><strong>ISBN:</strong> ${isbn}</p>
+                            <button 
+                                class="save-book-btn" 
+                                data-title="${encodeURIComponent(title)}" 
+                                data-authors="${encodeURIComponent(authors)}" 
+                                data-pagecount="${item.volumeInfo.pageCount || 0}" 
+                                data-isbn="${encodeURIComponent(isbn)}">Save Book</button>
+                        </div>`;
+                });
+            } else {
+                contentDiv.innerHTML = "<p>No results found.</p>";
+            }
+        }
+
+        // Fetch books from Google Books API via Lambda
+        async function searchBooks() {
+            const query = document.getElementById("query").value.trim();
+            if (!query) {
+                alert("Please enter a search term.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${server}/search?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error("Failed to fetch search results");
+                const data = await response.json();
+                handleResponse(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while fetching results.');
+            }
+        }
+
+        // Save book to DynamoDB via Lambda
+        async function saveBook(event) {
+            const button = event.target;
+            const title = decodeURIComponent(button.getAttribute('data-title'));
+            const authors = decodeURIComponent(button.getAttribute('data-authors'));
+            const pageCount = button.getAttribute('data-pagecount');
+            const isbn = decodeURIComponent(button.getAttribute('data-isbn'));
+
+            // Validate inputs
+            if (!isbn || isbn === 'No ISBN available') {
+                alert('Cannot save book without a valid ISBN.');
+                return;
+            }
+            if (!title || !authors || !pageCount) {
+                alert('Please provide all required details: title, author, and page count.');
+                return;
+            }
+
+            const bookData = {
+                BookID: isbn,
+                Title: title.trim(),
+                Author: authors.trim(),
+                PageCount: pageCount
+            };
+
+            console.log("Sending book data:", bookData);
+
+            try {
+                const response = await fetch(`${server}/save_book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bookData)
+                });
+
+                if (!response.ok) {
+                    const errorMessage = await response.text();
+                    console.error('Failed to save book:', errorMessage);
+                    alert(`Failed to save book: ${errorMessage}`);
+                    return;
+                }
+
+                const result = await response.json();
+                alert(result.message || 'Book saved successfully!');
+            } catch (error) {
+                console.error('Error saving book:', error);
+                alert('An error occurred while saving the book.');
+            }
+        }
+
+        // Attach event listener to all "Save Book" buttons
+        document.addEventListener('click', function(event) {
+            if (event.target && event.target.matches('button.save-book-btn')) {
+                saveBook(event);
+            }
+        });
+
+        // Load shelved books from DynamoDB via Lambda
+        async function loadShelvedBooks() {
+            try {
+                const response = await fetch(`${server}/shelved_books`);
+                if (!response.ok) throw new Error("Failed to load shelved books");
+
+                const books = await response.json();
+                const shelvedBooksDiv = document.getElementById("saved-books");
+                shelvedBooksDiv.innerHTML = ""; // Clear previous shelved books
+
+                if (books.length > 0) {
+                    let table = '<table border="1" style="width: 100%; text-align: left;">' +
+                                 '<tr><th>Title</th><th>Author</th><th>Page Count</th><th>ISBN</th></tr>';
+                    books.forEach(book => {
+                        table += `<tr>
+                                    <td>${book.Title}</td>
+                                    <td>${book.Author}</td>
+                                    <td>${book.PageCount}</td>
+                                    <td>${book.BookID}</td>
+                                  </tr>`;
+                    });
+                    table += '</table>';
+                    shelvedBooksDiv.innerHTML = table;
+                } else {
+                    shelvedBooksDiv.innerHTML = "<p>No shelved books found.</p>";
+                }
+            } catch (error) {
+                console.error('Error loading shelved books:', error);
+                alert('An error occurred while loading shelved books.');
+            }
+        }
+    </script>
+    <style>
+        .book-result {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            text-align: left;
+        }
+        th, td {
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Books API Example</h1>
+    <input type="text" id="query" placeholder="Enter book name" />
+    <button onclick="searchBooks()">Search</button>
+    <div id="content"></div>
+
+    <h2>Shelved Books</h2>
+    <button onclick="loadShelvedBooks()">Load Shelved Books</button>
+    <div id="saved-books"></div>
+</body>
+</html>
