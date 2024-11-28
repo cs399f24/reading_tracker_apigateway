@@ -67,6 +67,52 @@ For example: Key: googlebooks Value: <YOUR_GOOGLE_BOOKS_API_KEY>
 - Click Next to configure permissions.
 - Review and click Store to save the secret.
 
+### **Create a Cognito User Pool**
+1. **Go to AWS Cognito**:
+   Navigate to [Amazon Cognito](https://console.aws.amazon.com/cognito/).
+
+2. **Create a New User Pool**:
+   - Click on **"Create User Pool"**.
+
+3. **Basic Settings**:
+   - **Pool name**: Give your pool a meaningful name, such as `BooksPool`.
+
+4. **Configure Sign-In Experience**:
+   - **How will your users sign in?** 
+     - Choose `Username` and `email` as the sign-in method.
+   - **Do you want to allow sign-up?**
+     - Select `Yes`.
+
+5. **Configure Security Features**:
+   - **Password Policy**:
+     - Use default password.
+   - **Multi-Factor Authentication (MFA)**:
+     - For testing, you can leave it `Disabled`.
+
+6. **Attributes**:
+   - Make sure to include `email` as a required attribute if using email as the sign-in method.
+
+7. **Message Customizations**:
+   - Configure how users will receive verification messages:
+     - Choose between `Email` or `SMS`.
+
+8. **App Clients**:
+   - Create an App Client:
+     - Give it a name like `BooksAppClient`.
+   - Note down the **App Client ID**.
+
+9. **Review and Create**:
+   - Review your settings and click **"Create Pool"**.
+   - Once created, note down the **User Pool ID** (e.g., `us-east-1_xxxxx`).
+
+### Summary of Key Information to Note:
+- **User Pool ID** (e.g., `us-east-1_xxxxx`)
+- **App Client ID** (e.g., `xxxxxxx`)
+
+### Updating files to use Cognito
+- In `create_books_api.py` update arn with your arn.
+- In `index.html` replace `...` with your **App Client ID** and **User Pool ID**. 
+
 ### Script Permissions
 - If any script files give permission denied run:
 ```
