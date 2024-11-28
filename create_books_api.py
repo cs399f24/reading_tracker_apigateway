@@ -38,7 +38,7 @@ authorizer_response = client.create_authorizer(
     name='BooksPoolAuthorizer',
     type='COGNITO_USER_POOLS',
     providerARNs=[
-        'arn:aws:cognito-idp:us-east-1:730193190711:userpool/us-east-1_eJm0lwKhn'  # Replace with actual ARN
+        '...'  # Replace with actual ARN
     ],
     identitySource='method.request.header.Authorization'
 )
