@@ -2,7 +2,13 @@ import boto3
 import json
 import sys
 
+# Initialize clients
 client = boto3.client('apigateway', region_name='us-east-1')
+lambda_client = boto3.client('lambda', region_name='us-east-1')
+iam_client = boto3.client('iam')
+
+# Fetch LabRole ARN once
+lab_role_arn = iam_client.get_role(RoleName='LabRole')['Role']['Arn']
 
 # Check if the API already exists
 response = client.get_rest_apis()
@@ -26,6 +32,19 @@ api_id = response["id"]
 resources = client.get_resources(restApiId=api_id)
 root_id = [resource for resource in resources["items"] if resource["path"] == "/"][0]["id"]
 
+# Create Cognito authorizer
+authorizer_response = client.create_authorizer(
+    restApiId=api_id,
+    name='BooksPoolAuthorizer',
+    type='COGNITO_USER_POOLS',
+    providerARNs=[
+        'arn:aws:cognito-idp:us-east-1:730193190711:userpool/us-east-1_eJm0lwKhn'  # Replace with actual ARN
+    ],
+    identitySource='method.request.header.Authorization'
+)
+authorizer_id = authorizer_response['id']
+
+# ----------------------------- /search Resource ----------------------------- #
 # Create /search resource
 search_resource = client.create_resource(
     restApiId=api_id,
@@ -35,58 +54,32 @@ search_resource = client.create_resource(
 search_resource_id = search_resource["id"]
 
 # Define GET method for /search
-search_method = client.put_method(
+client.put_method(
     restApiId=api_id,
     resourceId=search_resource_id,
     httpMethod='GET',
-    authorizationType='NONE'
+    authorizationType='NONE',
 )
 
-search_response = client.put_method_response(
+# Attach Lambda function to /search
+search_function_arn = lambda_client.get_function(FunctionName='searchBooksFunction')['Configuration']['FunctionArn']
+search_uri = f'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{search_function_arn}/invocations'
+
+client.put_integration(
     restApiId=api_id,
     resourceId=search_resource_id,
     httpMethod='GET',
-    statusCode='200',
-    responseParameters={
-        'method.response.header.Access-Control-Allow-Headers': True,
-        'method.response.header.Access-Control-Allow-Origin': True,
-        'method.response.header.Access-Control-Allow-Methods': True
-    },
-    responseModels={'application/json': 'Empty'}
-)
-
-# Get the ARN for the searchBooksFunction Lambda function
-lambda_client = boto3.client('lambda', region_name='us-east-1')
-lambda_arn = lambda_client.get_function(FunctionName='searchBooksFunction')['Configuration']['FunctionArn']
-uri = f'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{lambda_arn}/invocations'
-
-# Get the ARN for the IAM LabRole
-iam_client = boto3.client('iam')
-lab_role = iam_client.get_role(RoleName='LabRole')['Role']['Arn']
-
-# Integrate Lambda function with /search resource
-search_integration = client.put_integration(
-    restApiId=api_id,
-    resourceId=search_resource_id,
-    httpMethod='GET',
-    credentials=lab_role,
+    credentials=lab_role_arn,
     integrationHttpMethod='POST',
     type='AWS_PROXY',
-    uri=uri
+    uri=search_uri
 )
 
-# Preflight OPTIONS for /search (CORS)
-search_options_method = client.put_method(
+# Add CORS support to /search
+client.put_method_response(
     restApiId=api_id,
     resourceId=search_resource_id,
-    httpMethod='OPTIONS',
-    authorizationType='NONE'
-)
-
-search_options_response = client.put_method_response(
-    restApiId=api_id,
-    resourceId=search_resource_id,
-    httpMethod='OPTIONS',
+    httpMethod='GET',
     statusCode='200',
     responseParameters={
         'method.response.header.Access-Control-Allow-Headers': True,
@@ -96,7 +89,28 @@ search_options_response = client.put_method_response(
     responseModels={'application/json': 'Empty'}
 )
 
-search_options_integration = client.put_integration(
+client.put_integration_response(
+    restApiId=api_id,
+    resourceId=search_resource_id,
+    httpMethod='GET',
+    statusCode='200',
+    responseParameters={
+        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+        'method.response.header.Access-Control-Allow-Origin': "'*'",
+        'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'"
+    },
+    responseTemplates={'application/json': ''}
+)
+
+# Add OPTIONS method for CORS preflight
+client.put_method(
+    restApiId=api_id,
+    resourceId=search_resource_id,
+    httpMethod='OPTIONS',
+    authorizationType='NONE'
+)
+
+client.put_integration(
     restApiId=api_id,
     resourceId=search_resource_id,
     httpMethod='OPTIONS',
@@ -104,17 +118,8 @@ search_options_integration = client.put_integration(
     requestTemplates={'application/json': '{"statusCode": 200}'}
 )
 
-# Step 1: Lambda URI setup for savedBooksFunction
-lambda_client = boto3.client('lambda', region_name='us-east-1')
-lambda_arn = lambda_client.get_function(FunctionName='savedBooksFunction')['Configuration']['FunctionArn']
-region = lambda_arn.split(':')[3]  # Extract the region dynamically
-uri = f'arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{lambda_arn}/invocations'
-
-# Get the ARN for the IAM LabRole
-iam_client = boto3.client('iam')
-lab_role = iam_client.get_role(RoleName='LabRole')['Role']['Arn']
-
-# Step 2: Create /save_book resource
+# ----------------------------- /save_book Resource ----------------------------- #
+# Create /save_book resource
 save_book_resource = client.create_resource(
     restApiId=api_id,
     parentId=root_id,
@@ -122,26 +127,30 @@ save_book_resource = client.create_resource(
 )
 save_book_resource_id = save_book_resource["id"]
 
-# Step 3: Define POST method for /save_book
+# Define POST method for /save_book
 client.put_method(
     restApiId=api_id,
     resourceId=save_book_resource_id,
     httpMethod='POST',
-    authorizationType='NONE'
+    authorizationType='COGNITO_USER_POOLS',
+    authorizerId=authorizer_id
 )
 
-# Step 4: Integrate Lambda function with POST method
+# Attach Lambda function to /save_book
+save_book_function_arn = lambda_client.get_function(FunctionName='savedBooksFunction')['Configuration']['FunctionArn']
+save_book_uri = f'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{save_book_function_arn}/invocations'
+
 client.put_integration(
     restApiId=api_id,
     resourceId=save_book_resource_id,
     httpMethod='POST',
     type='AWS_PROXY',
     integrationHttpMethod='POST',
-    uri=uri,
-    credentials=lab_role
+    uri=save_book_uri,
+    credentials=lab_role_arn
 )
 
-# Step 5: Define method response for POST with CORS headers
+# Add CORS support to /save_book
 client.put_method_response(
     restApiId=api_id,
     resourceId=save_book_resource_id,
@@ -162,12 +171,12 @@ client.put_integration_response(
     responseParameters={
         'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
         'method.response.header.Access-Control-Allow-Origin': "'*'",
-        'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
+        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
     },
     responseTemplates={'application/json': ''}
 )
 
-# Step 6: Create OPTIONS method for /save_book (CORS Preflight)
+# Add OPTIONS method for CORS preflight
 client.put_method(
     restApiId=api_id,
     resourceId=save_book_resource_id,
@@ -203,12 +212,12 @@ client.put_integration_response(
     responseParameters={
         'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
         'method.response.header.Access-Control-Allow-Origin': "'*'",
-        'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
+        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
     },
     responseTemplates={'application/json': ''}
 )
 
-
+# ----------------------------- /shelved_books Resource ----------------------------- #
 # Create /shelved_books resource
 shelved_books_resource = client.create_resource(
     restApiId=api_id,
@@ -218,63 +227,63 @@ shelved_books_resource = client.create_resource(
 shelved_books_resource_id = shelved_books_resource["id"]
 
 # Define GET method for /shelved_books
-shelved_books_method = client.put_method(
+client.put_method(
     restApiId=api_id,
     resourceId=shelved_books_resource_id,
     httpMethod='GET',
-    authorizationType='NONE'
+    authorizationType='COGNITO_USER_POOLS',
+    authorizerId=authorizer_id
 )
 
-shelved_books_response = client.put_method_response(
+# Attach Lambda function to /shelved_books
+shelved_books_function_arn = lambda_client.get_function(FunctionName='shelvedBooksFunction')['Configuration']['FunctionArn']
+shelved_books_uri = f'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{shelved_books_function_arn}/invocations'
+
+client.put_integration(
     restApiId=api_id,
     resourceId=shelved_books_resource_id,
     httpMethod='GET',
-    statusCode='200',
-    responseParameters={
-        'method.response.header.Access-Control-Allow-Headers': True,
-        'method.response.header.Access-Control-Allow-Origin': True,
-        'method.response.header.Access-Control-Allow-Methods': True
-    },
-    responseModels={'application/json': 'Empty'}
-)
-
-# Get the ARN for the shelvedBooksFunction Lambda function
-lambda_arn = lambda_client.get_function(FunctionName='shelvedBooksFunction')['Configuration']['FunctionArn']
-uri = f'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{lambda_arn}/invocations'
-
-# Integrate Lambda function with /shelved_books resource
-shelved_books_integration = client.put_integration(
-    restApiId=api_id,
-    resourceId=shelved_books_resource_id,
-    httpMethod='GET',
-    credentials=lab_role,
-    integrationHttpMethod='POST',
     type='AWS_PROXY',
-    uri=uri
+    integrationHttpMethod='POST',
+    uri=shelved_books_uri,
+    credentials=lab_role_arn
 )
 
-# Preflight OPTIONS for /shelved_books (CORS)
-shelved_books_options_method = client.put_method(
+# Add CORS support to /shelved_books
+client.put_method_response(
+    restApiId=api_id,
+    resourceId=shelved_books_resource_id,
+    httpMethod='GET',
+    statusCode='200',
+    responseParameters={
+        'method.response.header.Access-Control-Allow-Headers': True,
+        'method.response.header.Access-Control-Allow-Origin': True,
+        'method.response.header.Access-Control-Allow-Methods': True
+    }
+)
+
+client.put_integration_response(
+    restApiId=api_id,
+    resourceId=shelved_books_resource_id,
+    httpMethod='GET',
+    statusCode='200',
+    responseParameters={
+        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+        'method.response.header.Access-Control-Allow-Origin': "'*'",
+        'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'"
+    },
+    responseTemplates={'application/json': ''}
+)
+
+# Add OPTIONS method for CORS preflight
+client.put_method(
     restApiId=api_id,
     resourceId=shelved_books_resource_id,
     httpMethod='OPTIONS',
     authorizationType='NONE'
 )
 
-shelved_books_options_response = client.put_method_response(
-    restApiId=api_id,
-    resourceId=shelved_books_resource_id,
-    httpMethod='OPTIONS',
-    statusCode='200',
-    responseParameters={
-        'method.response.header.Access-Control-Allow-Headers': True,
-        'method.response.header.Access-Control-Allow-Origin': True,
-        'method.response.header.Access-Control-Allow-Methods': True
-    },
-    responseModels={'application/json': 'Empty'}
-)
-
-shelved_books_options_integration = client.put_integration(
+client.put_integration(
     restApiId=api_id,
     resourceId=shelved_books_resource_id,
     httpMethod='OPTIONS',
@@ -282,16 +291,29 @@ shelved_books_options_integration = client.put_integration(
     requestTemplates={'application/json': '{"statusCode": 200}'}
 )
 
-shelved_books_integration_response = client.put_integration_response(
+client.put_method_response(
     restApiId=api_id,
     resourceId=shelved_books_resource_id,
     httpMethod='OPTIONS',
     statusCode='200',
     responseParameters={
-        'method.response.header.Access-Control-Allow-Headers': '\'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token\'',
-        'method.response.header.Access-Control-Allow-Methods': '\'POST\',\'OPTIONS\'',
-        'method.response.header.Access-Control-Allow-Origin': '\'*\''
+        'method.response.header.Access-Control-Allow-Headers': True,
+        'method.response.header.Access-Control-Allow-Origin': True,
+        'method.response.header.Access-Control-Allow-Methods': True
     }
+)
+
+client.put_integration_response(
+    restApiId=api_id,
+    resourceId=shelved_books_resource_id,
+    httpMethod='OPTIONS',
+    statusCode='200',
+    responseParameters={
+        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+        'method.response.header.Access-Control-Allow-Origin': "'*'",
+        'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'"
+    },
+    responseTemplates={'application/json': ''}
 )
 
 # Print success message
