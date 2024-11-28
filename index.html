@@ -4,9 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Books API Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@latest/dist/amazon-cognito-identity.min.js"></script>
     <script>
         // Update this with your API Gateway endpoint
-        const server = 'https://okzhf18wyk.execute-api.us-east-1.amazonaws.com/dev';
+        const server = 'https://1u8z5w51uc.execute-api.us-east-1.amazonaws.com/dev';
+
+        const AmazonCognitoIdentity = window.AmazonCognitoIdentity;
+        
+        const poolData = {
+            UserPoolId: '...', // Replace with your User Pool ID
+            ClientId: '...', // Replace with your App Client ID
+        };
+        
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        // Sign-up Function
+        function signUp(username, password, email) {
+            const attributeList = [
+                new AmazonCognitoIdentity.CognitoUserAttribute({ Name: "email", Value: email }),
+            ];
+
+            userPool.signUp(username, password, attributeList, null, (err, result) => {
+                if (err) {
+                    alert('Error signing up: ' + (err.message || JSON.stringify(err)));
+                    return;
+                }
+                alert('Sign-up successful! Welcome, ' + result.user.getUsername());
+            });
+        }
+        
+        // Sign-in Function
+        function signIn(username, password) {
+            const authenticationData = {
+                Username: username,
+                Password: password,
+            };
+        
+            const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+            const userData = {
+                Username: username,
+                Pool: userPool,
+            };
+        
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+        
+            cognitoUser.authenticateUser(authenticationDetails, {
+                onSuccess: (result) => {
+                    const idToken = result.getIdToken().getJwtToken(); // Get id_token
+                    const refreshToken = result.getRefreshToken().getToken();
+        
+                    // Store tokens in localStorage
+                    localStorage.setItem('idToken', idToken); // Store id_token
+                    localStorage.setItem('refreshToken', refreshToken);
+        
+                    console.log('ID Token:', idToken);
+                    console.log('Refresh Token:', refreshToken);
+                    alert('Sign-in successful!');
+                },
+                onFailure: (err) => {
+                    alert('Sign-in failed: ' + (err.message || JSON.stringify(err)));
+                },
+            });
+        }
+
+        // Confirm Account Function
+        function confirmSignUp(username, confirmationCode) {
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                Username: username,
+                Pool: userPool,
+            });
+        
+            cognitoUser.confirmRegistration(confirmationCode, true, (err, result) => {
+                if (err) {
+                    alert('Error confirming account: ' + (err.message || JSON.stringify(err)));
+                    return;
+                }
+                alert('Account confirmed successfully! You can now sign in.');
+                console.log('Confirmation result: ' + result);
+            });
+        }
+        
+        // Fetch books from Google Books API via Lambda
+        async function searchBooks() {
+            const query = document.getElementById("query").value.trim();
+            if (!query) {
+                alert("Please enter a search term.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${server}/search?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error("Failed to fetch search results");
+                const data = await response.json();
+                handleResponse(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while fetching results.');
+            }
+        }
 
         // Handle response from Google Books API search
         function handleResponse(response) {
@@ -42,25 +137,6 @@
             }
         }
 
-        // Fetch books from Google Books API via Lambda
-        async function searchBooks() {
-            const query = document.getElementById("query").value.trim();
-            if (!query) {
-                alert("Please enter a search term.");
-                return;
-            }
-
-            try {
-                const response = await fetch(`${server}/search?query=${encodeURIComponent(query)}`);
-                if (!response.ok) throw new Error("Failed to fetch search results");
-                const data = await response.json();
-                handleResponse(data);
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while fetching results.');
-            }
-        }
-
         // Save book to DynamoDB via Lambda
         async function saveBook(event) {
             const button = event.target;
@@ -68,42 +144,38 @@
             const authors = decodeURIComponent(button.getAttribute('data-authors'));
             const pageCount = button.getAttribute('data-pagecount');
             const isbn = decodeURIComponent(button.getAttribute('data-isbn'));
-
-            // Validate inputs
-            if (!isbn || isbn === 'No ISBN available') {
-                alert('Cannot save book without a valid ISBN.');
+        
+            // Ensure you have a valid id_token
+            const idToken = localStorage.getItem('idToken'); // Retrieve id_token
+            if (!idToken) {
+                alert("You must sign in to save books.");
                 return;
             }
-            if (!title || !authors || !pageCount) {
-                alert('Please provide all required details: title, author, and page count.');
-                return;
-            }
-
+        
             const bookData = {
                 BookID: isbn,
                 Title: title.trim(),
                 Author: authors.trim(),
-                PageCount: pageCount
+                PageCount: parseInt(pageCount),
             };
-
-            console.log("Sending book data:", bookData);
-
+        
             try {
                 const response = await fetch(`${server}/save_book`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`, // Use id_token
                     },
-                    body: JSON.stringify(bookData)
+                    body: JSON.stringify(bookData),
                 });
-
+        
                 if (!response.ok) {
                     const errorMessage = await response.text();
                     console.error('Failed to save book:', errorMessage);
                     alert(`Failed to save book: ${errorMessage}`);
                     return;
                 }
-
+        
                 const result = await response.json();
                 alert(result.message || 'Book saved successfully!');
             } catch (error) {
@@ -112,26 +184,30 @@
             }
         }
 
-        // Attach event listener to all "Save Book" buttons
-        document.addEventListener('click', function(event) {
-            if (event.target && event.target.matches('button.save-book-btn')) {
-                saveBook(event);
-            }
-        });
-
-        // Load shelved books from DynamoDB via Lambda
         async function loadShelvedBooks() {
+            const idToken = localStorage.getItem('idToken'); // Retrieve id_token
+            if (!idToken) {
+                alert("You must sign in to view shelved books.");
+                return;
+            }
+        
             try {
-                const response = await fetch(`${server}/shelved_books`);
+                const response = await fetch(`${server}/shelved_books`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`, // Use id_token
+                    },
+                });
+        
                 if (!response.ok) throw new Error("Failed to load shelved books");
-
-                const books = await response.json();
+        
+                const books = await response.json(); // This is the line referencing `response`
                 const shelvedBooksDiv = document.getElementById("saved-books");
                 shelvedBooksDiv.innerHTML = ""; // Clear previous shelved books
-
+        
                 if (books.length > 0) {
                     let table = '<table border="1" style="width: 100%; text-align: left;">' +
-                                 '<tr><th>Title</th><th>Author</th><th>Page Count</th><th>ISBN</th></tr>';
+                                '<tr><th>Title</th><th>Author</th><th>Page Count</th><th>ISBN</th></tr>';
                     books.forEach(book => {
                         table += `<tr>
                                     <td>${book.Title}</td>
@@ -150,7 +226,17 @@
                 alert('An error occurred while loading shelved books.');
             }
         }
+        
+        // Attach event listener to all "Save Book" buttons
+        document.addEventListener('click', function(event) {
+            if (event.target && event.target.matches('button.save-book-btn')) {
+                saveBook(event);
+            }
+        });
+
+
     </script>
+
     <style>
         .book-result {
             border: 1px solid #ddd;
@@ -171,6 +257,31 @@
 </head>
 <body>
     <h1>Books API Example</h1>
+
+    <h2>Authentication</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <input type="email" id="email" placeholder="Email">
+    <button onclick="signUp(
+        document.getElementById('username').value,
+        document.getElementById('password').value,
+        document.getElementById('email').value
+    )">Sign Up</button>
+
+    <button onclick="signIn(
+        document.getElementById('username').value,
+        document.getElementById('password').value
+    )">Sign In</button>
+    
+    <h2>Confirm Account</h2>
+    <input type="text" id="confirm-username" placeholder="Username">
+    <input type="text" id="confirmation-code" placeholder="Confirmation Code">
+    <button onclick="confirmSignUp(
+        document.getElementById('confirm-username').value,
+        document.getElementById('confirmation-code').value
+    )">Confirm Sign Up</button>
+
+    <h2>Search Books</h2>
     <input type="text" id="query" placeholder="Enter book name" />
     <button onclick="searchBooks()">Search</button>
     <div id="content"></div>
