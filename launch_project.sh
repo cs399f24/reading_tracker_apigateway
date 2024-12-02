@@ -1,7 +1,7 @@
 #!/bin/bash
 
 chmod +x create_dynamodb.sh
-chmod +x create_saved_books_lambda.1.sh
+chmod +x create_saved_books_lambda_1.sh
 chmod +x create_search_books_lambda.sh
 chmod +x create_shelved_books_lambda.sh
 chmod +x deploy.sh
@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 ./create_dynamodb.sh
 
-./create_saved_books_lambda.1.sh
+./create_saved_books_lambda_1.sh
 
 ./create_search_books_lambda.sh
 
