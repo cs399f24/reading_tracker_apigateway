@@ -38,7 +38,7 @@ authorizer_response = client.create_authorizer(
     name='BooksPoolAuthorizer',
     type='COGNITO_USER_POOLS',
     providerARNs=[
-        '...'  # Replace with actual ARN
+        'arn:aws:cognito-idp:us-east-1:715365186374:userpool/us-east-1_JTD6bNQbq'  # Replace with actual ARN
     ],
     identitySource='method.request.header.Authorization'
 )
@@ -244,12 +244,12 @@ client.put_integration(
     resourceId=shelved_books_resource_id,
     httpMethod='GET',
     type='AWS_PROXY',
-    integrationHttpMethod='POST',
+    integrationHttpMethod='POST',  # Must match Lambda integration method
     uri=shelved_books_uri,
     credentials=lab_role_arn
 )
 
-# Add CORS support to /shelved_books
+# Add CORS support to GET method response
 client.put_method_response(
     restApiId=api_id,
     resourceId=shelved_books_resource_id,

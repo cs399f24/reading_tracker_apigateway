@@ -21,8 +21,9 @@ pip install -r requirements.txt
 
 ./create_shelved_books_lambda.sh
 
-python create_books_api.py
+python3 create_books_api.py
 
 ./deploy.sh
 
 ./update_index.sh
+
