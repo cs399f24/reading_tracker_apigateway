@@ -13,6 +13,7 @@ This project implements a web application where users can search for books using
 ```
 aws s3 cp index.html s3://<Enter s3 bucket name>
 ```
+
 ### S3 Bucket Creation and Configuration
 
 1. Create a bucket for the application:
@@ -38,6 +39,14 @@ aws s3 cp index.html s3://<Enter s3 bucket name>
       ]
   }
   ```
+3. After the buckets creation cp the html files into the bucket for later use:
+```
+aws s3 cp index.html s3://<Enter s3 bucket name>
+
+aws s3 cp callback.html s3://<Enter s3 bucket name>
+
+aws s3 cp sign_out.html s3://<Enter s3 bucket name>
+```
   
 
 
