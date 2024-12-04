@@ -15,7 +15,7 @@ def lambda_handler(event, context):
         }
     
     # Message to publish
-    message = "Hello! This is your scheduled notification from Amazon SNS."
+    message = "Have you Remembered to Read Today?"
     subject = "Scheduled Notification"
     
     try:
