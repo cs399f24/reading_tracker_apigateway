@@ -14,6 +14,12 @@ echo "Created SNS Topic: $SNS_TOPIC_ARN"
 # Get the IAM Role ARN for 'labRole'
 ROLE=$(aws iam get-role --role-name labRole --query "Role.Arn" --output text)
 
+# Ensure the Lambda function file exists before zipping
+if [ ! -f "scheduled_sns_lambda.py" ]; then
+    echo "Error: scheduled_sns_lambda.py not found!"
+    exit 1
+fi
+
 # Zip the Lambda function code
 zip scheduled_sns_lambda.zip scheduled_sns_lambda.py
 
@@ -42,7 +48,9 @@ aws lambda add-permission \
   --source-arn "$RULE_ARN"
 
 # Add the Lambda function as a target for the EventBridge rule
+FUNCTION_ARN=$(aws lambda get-function --function-name sendScheduledSNSFunction --query 'Configuration.FunctionArn' --output text)
+
 aws events put-targets --rule "$RULE_NAME" \
-  --targets "Id=1,Arn=$(aws lambda get-function --function-name sendScheduledSNSFunction --query 'Configuration.FunctionArn' --output text)"
+  --targets "Id=1,Arn=$FUNCTION_ARN"
 
 echo "Deployment of 'sendScheduledSNSFunction' and scheduling complete."
