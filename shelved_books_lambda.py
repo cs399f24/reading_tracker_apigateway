@@ -49,8 +49,6 @@ def get_cognito_public_keys(region, user_pool_id):
 
 def lambda_handler(event, context):
     # Scan the bookshelf table to get all books
-    response = table.scan()
-    items = decimal_to_float(response['Items'])
     
     headers = event.get('headers', {})
     auth_header = headers.get('Authorization', '')
@@ -77,6 +75,9 @@ def lambda_handler(event, context):
             raise ValueError("User ID not found in token")
         
         print(f"User ID: {user_id}")
+        
+        response = table.query(KeyConditionExpression=Key('UserID').eq(user_id))
+        items = decimal_to_float(response.get('Items', []))
         
     except Exception as e:
         print(f"Error processing token: {e}")
