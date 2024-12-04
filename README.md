@@ -1,5 +1,5 @@
 # reading_tracker_apigateway
-![image](https://imgur.com/a/2YeJSjc)
+![image](graph.png)
 
 
 ## Overview
