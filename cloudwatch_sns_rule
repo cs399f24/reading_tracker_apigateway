@@ -1,0 +1,51 @@
+import boto3
+
+# Initialize the clients
+events_client = boto3.client('events')
+lambda_client = boto3.client('lambda')
+
+def create_cloudwatch_rule(rule_name, schedule_expression, lambda_arn):
+    try:
+        # Create or update the CloudWatch Rule
+        response = events_client.put_rule(
+            Name=rule_name,
+            ScheduleExpression=schedule_expression,
+            State='ENABLED',
+            Description='Triggers the Lambda function every 5 minutes'
+        )
+        
+        rule_arn = response['RuleArn']
+        print(f"CloudWatch Rule created: {rule_arn}")
+        
+        # Grant permissions for the rule to invoke the Lambda function
+        lambda_client.add_permission(
+            FunctionName=lambda_arn,
+            StatementId=f"{rule_name}-permission",
+            Action='lambda:InvokeFunction',
+            Principal='events.amazonaws.com',
+            SourceArn=rule_arn
+        )
+        print("Permission added to Lambda function.")
+        
+        # Add the Lambda function as a target for the rule
+        target_response = events_client.put_targets(
+            Rule=rule_name,
+            Targets=[
+                {
+                    'Id': '1',  
+                    'Arn': lambda_arn
+                }
+            ]
+        )
+        print(f"Lambda function set as target: {target_response}")
+        
+    except Exception as e:
+        print(f"Error creating CloudWatch rule: {e}")
+
+if __name__ == "__main__":
+    # Customize these values
+    RULE_NAME = 'TriggerLambdaEvery5Minutes'
+    SCHEDULE_EXPRESSION = 'rate(5 minutes)'  
+    LAMBDA_ARN = 'arn:aws:lambda:us-east-1:123456789012:function:MyLambdaFunction'
+
+    create_cloudwatch_rule(RULE_NAME, SCHEDULE_EXPRESSION, LAMBDA_ARN)
