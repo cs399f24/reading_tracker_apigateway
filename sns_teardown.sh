@@ -25,11 +25,14 @@ else
   echo "Lambda function does not exist."
 fi
 
-# Delete CloudWatch rule if it exists
+# Remove targets from the CloudWatch rule before deletion
 if [ "$CLOUDWATCH_RULE_ARN" != "None" ]; then
+  # Remove Lambda as the target of the CloudWatch rule
   aws events remove-targets --rule "ReadingTrackerRule" --target-ids "LambdaTarget"
+  # Now delete the CloudWatch rule
   aws events delete-rule --name "ReadingTrackerRule"
   echo "CloudWatch rule deleted."
 else
   echo "CloudWatch rule does not exist."
 fi
+
