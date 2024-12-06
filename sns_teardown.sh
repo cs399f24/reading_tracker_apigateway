@@ -9,6 +9,9 @@ LAMBDA_FUNCTION_NAME=$(aws lambda list-functions --query "Functions[?contains(Fu
 # Get the CloudWatch rule ARN dynamically
 CLOUDWATCH_RULE_ARN=$(aws events list-rules --query "Rules[?contains(Name, 'ReadingTrackerRule')].Arn" --output text)
 
+# Get the Target ID dynamically for the CloudWatch rule
+TARGET_ID=$(aws events list-targets-by-rule --rule "ReadingTrackerRule" --query "Targets[0].Id" --output text)
+
 # Delete SNS topic if it exists
 if [ "$SNS_TOPIC_ARN" != "None" ]; then
   aws sns delete-topic --topic-arn "$SNS_TOPIC_ARN"
@@ -28,7 +31,12 @@ fi
 # Remove targets from the CloudWatch rule before deletion
 if [ "$CLOUDWATCH_RULE_ARN" != "None" ]; then
   # Remove Lambda as the target of the CloudWatch rule
-  aws events remove-targets --rule "ReadingTrackerRule" --target-ids "LambdaTarget"
+  if [ "$TARGET_ID" != "None" ]; then
+    aws events remove-targets --rule "ReadingTrackerRule" --id "$TARGET_ID"
+    echo "Lambda function removed as target from CloudWatch rule."
+  else
+    echo "No target found for CloudWatch rule."
+  fi
   # Now delete the CloudWatch rule
   aws events delete-rule --name "ReadingTrackerRule"
   echo "CloudWatch rule deleted."
