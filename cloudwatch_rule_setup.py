@@ -1,35 +1,36 @@
 import boto3
-import os
 
-# Load environment variables
-AWS_REGION = os.getenv("AWS_REGION")
+# Initialize CloudWatch Events client
+cloudwatch_client = boto3.client('events')
 
-# Read the SNS topic ARN from the previous script
-with open("sns_topic_arn.txt", "r") as file:
-    topic_arn = file.read()
+# Initialize Lambda client
+lambda_client = boto3.client('lambda')
 
-# Initialize CloudWatch Events and SNS client
-cloudwatch_client = boto3.client('events', region_name=AWS_REGION)
-
-# Create a CloudWatch Rule to trigger every 5 minutes
-rule_response = cloudwatch_client.put_rule(
-    Name="ReadingReminderRule",
-    ScheduleExpression="rate(5 minutes)",
-    State="ENABLED",
+# Create the CloudWatch rule
+response = cloudwatch_client.put_rule(
+    Name='ReadReminderRule',
+    ScheduleExpression='rate(5 minutes)',  # This triggers the Lambda function every 5 minutes
+    State='ENABLED',
 )
 
-rule_arn = rule_response['RuleArn']
-print(f"CloudWatch Rule created: {rule_arn}")
+rule_arn = response['RuleArn']
 
-# Set the CloudWatch Rule to trigger SNS Topic
-cloudwatch_client.put_targets(
-    Rule="ReadingReminderRule",
+# Add Lambda function as the target for the CloudWatch Rule
+response = cloudwatch_client.put_targets(
+    Rule='ReadReminderRule',
     Targets=[
         {
-            'Id': '1',
-            'Arn': topic_arn
+            'Id': 'ReadReminderTarget',
+            'Arn': 'arn:aws:lambda:your-region:your-account-id:function:your-lambda-function-name',  # Replace with your Lambda ARN
         }
     ]
 )
 
-print(f"CloudWatch Rule successfully linked to SNS Topic.")
+# Add permissions to allow CloudWatch to invoke the Lambda function
+lambda_client.add_permission(
+    FunctionName='your-lambda-function-name',  # Replace with your Lambda function name
+    Principal='events.amazonaws.com',
+    StatementId='ReadReminderInvokePermission',
+    Action='lambda:InvokeFunction',
+    SourceArn=rule_arn
+)
