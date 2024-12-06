@@ -6,7 +6,7 @@ sns_client = boto3.client('sns')
 
 def lambda_handler(event, context):
     sns_topic_arn = os.environ.get('SNS_TOPIC_ARN')
-    email_address = os.environ.get('SUBSCRIBER_EMAIL')  # Add this to your Lambda environment variables
+    email_address = os.environ.get('SUBSCRIBER_EMAIL')
 
     if not sns_topic_arn or not email_address:
         return {
@@ -20,7 +20,7 @@ def lambda_handler(event, context):
         if not any(sub['Endpoint'] == email_address for sub in subscriptions):
             sns_client.subscribe(
                 TopicArn=sns_topic_arn,
-                Protocol='email',  # Use 'sms' for text messages or other protocols
+                Protocol='email',  
                 Endpoint=email_address
             )
             print(f"Subscription created for: {email_address}")
