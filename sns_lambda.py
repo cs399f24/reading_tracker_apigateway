@@ -2,29 +2,40 @@ import boto3
 import os
 import json
 
-# Initialize the SNS client
 sns_client = boto3.client('sns')
 
 def lambda_handler(event, context):
-    # Get the SNS topic ARN from environment variables
     sns_topic_arn = os.environ.get('SNS_TOPIC_ARN')
-    if not sns_topic_arn:
+    email_address = os.environ.get('SUBSCRIBER_EMAIL')  # Add this to your Lambda environment variables
+
+    if not sns_topic_arn or not email_address:
         return {
             'statusCode': 500,
-            'body': json.dumps({'message': 'SNS_TOPIC_ARN is not set'})
+            'body': json.dumps({'message': 'SNS_TOPIC_ARN or SUBSCRIBER_EMAIL is not set'})
         }
-    
-    # Message to publish
-    message = "Have you Remembered to Read Today?"
-    subject = "Scheduled Notification"
-    
+
+    # Create a subscription if not already created
     try:
-        # Publish the message to the SNS topic
-        sns_client.publish(
-            TopicArn=sns_topic_arn,
-            Message=message,
-            Subject=subject
-        )
+        subscriptions = sns_client.list_subscriptions_by_topic(TopicArn=sns_topic_arn)['Subscriptions']
+        if not any(sub['Endpoint'] == email_address for sub in subscriptions):
+            sns_client.subscribe(
+                TopicArn=sns_topic_arn,
+                Protocol='email',  # Use 'sms' for text messages or other protocols
+                Endpoint=email_address
+            )
+            print(f"Subscription created for: {email_address}")
+    except Exception as e:
+        print(f"Error creating subscription: {e}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'message': f'Error creating subscription: {e}'})
+        }
+
+    # Publish message
+    message = "Have you remembered to read today?"
+    subject = "Scheduled Notification"
+    try:
+        sns_client.publish(TopicArn=sns_topic_arn, Message=message, Subject=subject)
         print(f"Message published to SNS topic: {sns_topic_arn}")
         return {
             'statusCode': 200,
@@ -36,3 +47,4 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps({'message': f'Error sending message: {e}'})
         }
+
