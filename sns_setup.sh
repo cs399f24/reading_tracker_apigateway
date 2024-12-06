@@ -1,5 +1,8 @@
 #!/bin/bash
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Run the Python script to create SNS topic
 echo "Creating SNS Topic..."
 python3 create_sns_topic.py
