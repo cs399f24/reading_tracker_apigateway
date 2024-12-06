@@ -11,7 +11,7 @@ This project implements a web application where users can search for books using
 ### Clone the Repo
 - Clone the readme
 ```
-git clone <readme>
+git clone <Enter Link>
 ```
 
 
