@@ -8,6 +8,13 @@ This project implements a web application where users can search for books using
 
 ## Project Setup and Configurations
 
+### Clone the Repo
+- Clone the readme
+```
+git clone <readme>
+```
+
+
 ### s3
 - Creation of s3 Bucket is needed and modification of last line in the update_index.sh file to have user bucket name:
 ```
