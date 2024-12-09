@@ -18,28 +18,10 @@ aws s3 cp index.html s3://<Enter s3 bucket name>
 
 1. Create a bucket for the application:
 
-  * **Name**:  Remember, names must be *globally unique*.  I recommend a name like `voting399-<last name>`. 
+  * **Name**:  Remember, names must be *globally unique*.  I recommend a name like `reading-tracker-<last name>`. 
   * **Public Access**: Deselect "Block all public access" and then click the acknowledgement that appears below this option.
 
-
-2. In the list of buckets, select the bucket to see the information about the bucket.  Under **Permissions** click "Edit" for the "Bucket Policy".  Add the following policy to allow anyone to GET objects in the bucket (change `<bucket name>`):
-
-
-  ```
-  {
-      "Version": "2012-10-17",
-      "Statement": [
-          {
-              "Sid": "PublicReadGetObject",
-              "Effect": "Allow",
-              "Principal": "*",
-              "Action": "s3:GetObject",
-              "Resource": "arn:aws:s3:::<bucket name>/*"
-          }
-      ]
-  }
-  ```
-3. After the buckets creation cp the html files into the bucket for later use:
+2. After the buckets creation cp the html files into the bucket for later use:
 ```
 aws s3 cp index.html s3://<Enter s3 bucket name>
 
@@ -94,9 +76,6 @@ For example: Key: googlebooks Value: <YOUR_GOOGLE_BOOKS_API_KEY>
 ```
 ./create_cognito.sh
 ```
-### Updating files to use Cognito
-- In `create_books_api.py` update arn with your arn.
-- In `index.html` replace `...` with your **App Client ID** and **User Pool ID**. 
 
 ### Script Permissions
 - If any script files give permission denied run:
@@ -106,7 +85,7 @@ chmod +x <name of script file>
 
 ## Developer Setup
 
-### Launch entire project with one command (Can only be done after Amplify and Cognito setup):
+### Launch entire project with one command (Can only be done after Amplify and Cognito info is filled out):
 ```
 ./launch_project.sh
 ```
