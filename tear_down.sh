@@ -1,17 +1,25 @@
 #!/bin/bash
-chmod +x delete_api.sh
-chmod +x delete_dynamodb.sh
-chmod +x Delete_SavedBooks_Lambda.sh
-chmod +x Delete_ShelvedBooks_Lambda.sh
-chmod +x Delete_SearchBooks_Lambda.sh
+chmod +x ./deletion_scripts/delete_api.sh
+chmod +x ./deletion_scripts/delete_dynamodb.sh
+chmod +x ./deletion_scripts/delete_savedBooks_Lambda.sh
+chmod +x ./deletion_scripts/delete_shelvedBooks_Lambda.sh
+chmod +x ./deletion_scripts/delete_searchBooks_Lambda.sh
+chmod +x ./deletion_scripts/delete_sns_lambda.sh
+chmod +x ./deletion_scripts/delete_cloudwatch_rule.sh
+chmod +x ./deletion_scripts/delete_cognito.sh
 
+./deletion_scripts/delete_cognito.sh
 
-./delete_api.sh
+./deletion_scripts/delete_api.sh
 
-./delete_dynamodb.sh
+./deletion_scripts/delete_dynamodb.sh
 
-./Delete_SavedBooks_Lambda.sh
+./deletion_scripts/delete_savedBooks_Lambda.sh
 
-./Delete_ShelvedBooks_Lambda.sh
+./deletion_scripts/delete_shelvedBooks_Lambda.sh
 
-./Delete_SearchBooks_Lambda.sh
+./deletion_scripts/delete_searchBooks_Lambda.sh
+
+./deletion_scripts/delete_sns_lambda.sh
+
+./deletion_scripts/delete_cloudwatch_rule.sh

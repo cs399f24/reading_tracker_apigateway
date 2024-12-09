@@ -6,6 +6,8 @@ import sys
 client = boto3.client('apigateway', region_name='us-east-1')
 lambda_client = boto3.client('lambda', region_name='us-east-1')
 iam_client = boto3.client('iam')
+cognito_client = boto3.client('cognito-idp', region_name='us-east-1')
+sts_client = boto3.client('sts')
 
 # Fetch LabRole ARN once
 lab_role_arn = iam_client.get_role(RoleName='LabRole')['Role']['Arn']
@@ -32,16 +34,37 @@ api_id = response["id"]
 resources = client.get_resources(restApiId=api_id)
 root_id = [resource for resource in resources["items"] if resource["path"] == "/"][0]["id"]
 
-# Create Cognito authorizer
+# Get the user pool ID for 'BookshelfUserPool'
+cognito_response = cognito_client.list_user_pools(MaxResults=50)
+
+# Find the user pool ID for 'BookshelfUserPool'
+cognito_id = None
+for pool in cognito_response['UserPools']:
+    if pool['Name'] == 'BookshelfUserPool':
+        cognito_id = pool['Id']
+        break  # Exit the loop once the pool is found
+
+if not cognito_id:
+    raise Exception("User pool 'BookshelfUserPool' not found.")
+
+# Get the AWS account ID
+account_id = sts_client.get_caller_identity()["Account"]
+
+# Get the current region
+region = boto3.Session().region_name
+
+# Construct the ARN
+cognito_arn = f'arn:aws:cognito-idp:{region}:{account_id}:userpool/{cognito_id}'
+
+# Use it in your API Gateway Authorizer setup
 authorizer_response = client.create_authorizer(
     restApiId=api_id,
     name='BooksPoolAuthorizer',
     type='COGNITO_USER_POOLS',
-    providerARNs=[
-        '<Enter cognito ARN here>'  # Replace with actual ARN
-    ],
+    providerARNs=[cognito_arn],
     identitySource='method.request.header.Authorization'
 )
+
 authorizer_id = authorizer_response['id']
 
 # ----------------------------- /search Resource ----------------------------- #

@@ -1,4 +1,5 @@
 import boto3
+import re
 
 # Initialize the Cognito client
 cognito_client = boto3.client('cognito-idp', region_name='us-east-1')
@@ -83,5 +84,26 @@ hosted_ui_url = (
     f"https://<Enter domain name>.auth.us-east-1.amazoncognito.com/login?"
     f"response_type=token&client_id={app_client_id}&redirect_uri=<Enter callback URL>"
 )
+
+# Define the file path
+file_path = 'index.html'
+
+# Open the file and read the contents
+with open(file_path, 'r') as file:
+    content = file.read()
+
+# Use regular expression to replace the line that matches the pattern for login_server
+updated_content = re.sub(
+    r"^\s*const login_server = 'https://.*';",  # Pattern to match
+    f"        const login_server = '{hosted_ui_url}';",  # Replacement string
+    content,  # Content of the file
+    flags=re.MULTILINE  # To make sure the replacement works across multiple lines
+)
+
+# Write the updated content back to the file
+with open(file_path, 'w') as file:
+    file.write(updated_content)
+
+print(f"Login URL replaced in {file_path}")
 
 print(f"Hosted UI URL: {hosted_ui_url}")

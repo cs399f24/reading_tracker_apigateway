@@ -3,18 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Books API Example</title>
+    <title>Reading Tracker</title>
     <script>
-        // Update this with your API Gateway endpoint
-        const server = 'https://jrjhxwq6a2.execute-api.us-east-1.amazonaws.com/dev';
-        const login_server = '<Enter url produced after running cognito script>';
+        const server = 'https://k0s472rroa.execute-api.us-east-1.amazonaws.com/dev';
+        const login_server = 'https://bookshelf-app-domain.auth.us-east-1.amazoncognito.com/login?client_id=1jdif47hi2b11b0uke40lmv8f&response_type=token&scope=email+openid+profile&redirect_uri=https://dev.d2xh5tw393u09q.amplifyapp.com/callback.html';
 
         function handleAuth() {
             if (localStorage.getItem('bearer_str')) {
-                // Redirect to sign out page if logged in
                 window.location = location.origin + '/sign_out.html';
             } else {
-                // Redirect to login page if not logged in
                 window.location.href = login_server;
             }
         }
@@ -28,11 +25,9 @@
             }
         }
 
-        // Handle response from Google Books API search
         function handleResponse(response) {
             const contentDiv = document.getElementById("content");
-            contentDiv.innerHTML = ""; // Clear previous results
-
+            contentDiv.innerHTML = "";
             if (response.items) {
                 response.items.forEach(item => {
                     const title = item.volumeInfo.title || 'No Title Available';
@@ -41,7 +36,6 @@
                     const description = item.volumeInfo.description || 'No description available';
                     const isbn = item.volumeInfo.industryIdentifiers ? item.volumeInfo.industryIdentifiers[0].identifier : 'No ISBN available';
 
-                    // Populate book details
                     contentDiv.innerHTML += `
                         <div class="book-result">
                             <h3>${title}</h3>
@@ -62,7 +56,6 @@
             }
         }
 
-        // Fetch books from Google Books API via Lambda
         async function searchBooks() {
             const query = document.getElementById("query").value.trim();
             if (!query) {
@@ -81,7 +74,6 @@
             }
         }
 
-        // Save book to DynamoDB via Lambda
         async function saveBook(event) {
             const button = event.target;
             const title = decodeURIComponent(button.getAttribute('data-title'));
@@ -89,7 +81,6 @@
             const pageCount = button.getAttribute('data-pagecount');
             const isbn = decodeURIComponent(button.getAttribute('data-isbn'));
 
-            // Validate inputs
             if (!isbn || isbn === 'No ISBN available') {
                 alert('Cannot save book without a valid ISBN.');
                 return;
@@ -106,8 +97,6 @@
                 PageCount: pageCount
             };
 
-            console.log("Sending book data:", bookData);
-            
             const bearerToken = localStorage.getItem('bearer_str');
             if (!bearerToken) {
                 alert('You must be logged in to save books.');
@@ -139,38 +128,35 @@
             }
         }
 
-        // Attach event listener to all "Save Book" buttons
         document.addEventListener('click', function(event) {
             if (event.target && event.target.matches('button.save-book-btn')) {
                 saveBook(event);
             }
         });
 
-        // Load shelved books from DynamoDB via Lambda
         async function loadShelvedBooks() {
-            
-             const bearerToken = localStorage.getItem('bearer_str');
+            const bearerToken = localStorage.getItem('bearer_str');
             if (!bearerToken) {
                 alert('You must be logged in to see shelved books.');
                 return;
             }
-            
-             try {
+
+            try {
                 const response = await fetch(`${server}/shelved_books`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${bearerToken}` // Use id_token
+                        'Authorization': `Bearer ${bearerToken}`
                     },
                 });
-                
+
                 if (!response.ok) throw new Error("Failed to load shelved books");
 
                 const books = await response.json();
                 const shelvedBooksDiv = document.getElementById("saved-books");
-                shelvedBooksDiv.innerHTML = ""; // Clear previous shelved books
+                shelvedBooksDiv.innerHTML = "";
 
                 if (books.length > 0) {
-                    let table = '<table border="1" style="width: 100%; text-align: left;">' +
+                    let table = '<table class="book-table">' +
                                  '<tr><th>Title</th><th>Author</th><th>Page Count</th><th>ISBN</th></tr>';
                     books.forEach(book => {
                         table += `<tr>
@@ -190,35 +176,91 @@
                 alert('An error occurred while loading shelved books.');
             }
         }
-        
-         window.onload = () => {
+
+        window.onload = () => {
             updateAuthButton();
         };
-        
     </script>
     <style>
-        .book-result {
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin: 10px 0;
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
         }
-        table {
+        header {
+            background-color: #007BFF;
+            padding: 20px;
+            color: #fff;
+            text-align: center;
+        }
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-top: 20px;
+        }
+        #content, #saved-books {
+            margin: 20px;
+        }
+        .book-result {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .book-result h3 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .book-result p {
+            margin: 5px 0;
+        }
+        .save-book-btn {
+            background-color: #28a745;
+            margin-top: 10px;
+        }
+        .save-book-btn:hover {
+            background-color: #218838;
+        }
+        .book-table {
             width: 100%;
             text-align: left;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
-        th, td {
-            padding: 8px;
+        .book-table th, .book-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
         }
-        th {
-            background-color: #f4f4f4;
+        .book-table th {
+            background-color: #f8f8f8;
         }
     </style>
 </head>
 <body>
-    <button id="authButton" onclick="handleAuth()">Login</button>
-    <h1>Books API Example</h1>
-    <input type="text" id="query" placeholder="Enter book name" />
-    <button onclick="searchBooks()">Search</button>
+    <header>
+        <button id="authButton" onclick="handleAuth()">Login</button>
+        <h1>Reading Tracker</h1>
+    </header>
+    <div class="search-section">
+        <input type="text" id="query" placeholder="Enter book name" />
+        <button onclick="searchBooks()">Search</button>
+    </div>
     <div id="content"></div>
 
     <h2>Shelved Books</h2>

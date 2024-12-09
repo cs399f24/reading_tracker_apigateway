@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./delete_api.sh
+./deletion_scripts/delete_api.sh
 
 python create_books_api.py
 

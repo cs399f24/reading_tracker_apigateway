@@ -48,7 +48,7 @@ def get_cognito_public_keys(region, user_pool_id):
     return jwks
 
 def lambda_handler(event, context):
-    # Scan the bookshelf table to get all books
+  
     
     headers = event.get('headers', {})
     auth_header = headers.get('Authorization', '')
@@ -70,6 +70,10 @@ def lambda_handler(event, context):
         # Decode the token to extract payload
         header, payload = decode_token(id_token)
         user_id = payload.get("sub")
+        email = payload.get("email")
+        
+        print(f"Payload: {payload}")
+        print(f"Email: {email}")
         
         if not user_id:
             raise ValueError("User ID not found in token")

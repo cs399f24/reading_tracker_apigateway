@@ -1,5 +1,5 @@
 # reading_tracker_apigateway
-![image](graph.png)
+![image](https://github.com/user-attachments/assets/17b86fbf-fdc4-48ba-9cd7-e557c7ff295a)
 
 
 ## Overview
@@ -7,13 +7,6 @@
 This project implements a web application where users can search for books using the Google Books API and store selected books in a DynamoDB table. The application serves a frontend hosted in an S3 bucket, with a backend implemented using Cloud9, AWS Lambda functions, API Gateway, and DynamoDB for data storage. The architecture is serverless, with Lambda functions handling book search, saving, and shelving operations.
 
 ## Project Setup and Configurations
-
-### Clone the Repo
-- Clone the readme
-```
-git clone <Enter Link>
-```
-
 
 ### s3
 - Creation of s3 Bucket is needed and modification of last line in the update_index.sh file to have user bucket name:
