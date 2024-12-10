@@ -7,6 +7,9 @@ This project implements a web application that allows users to search for books 
 
 The goal of the project is to create a Reading Tracker application using an AWS-based architecture. Users can sign in, search for books they have read, save their selections, and view a visual representation of their previously logged books. Additionally, users receive daily SNS notifications reminding them to update their reading activity, promoting consistent engagement.
 
+### **Disclaimer**
+- SNS may not function correctly due to possible last minute AWS updates to the service
+
 ## Project Setup and Configurations
 
 ### Cloud9 and Clone Repository
