@@ -8,26 +8,41 @@ This project implements a web application where users can search for books using
 
 ## Project Setup and Configurations
 
-### s3
-- Creation of s3 Bucket is needed and modification of last line in the update_index.sh file to have user bucket name:
+### Cloud9 and Clone Repository
+1. Open up AWS management console and head to cloud9
+2. Create a cloud9 work space:
+  -  In the creation screen simply click 'secure shell(SSH)' under the Network Settings heading
+  -  Then click 'create'
+3. Enter the cloud9 workspace after it is created
+4. Clone the repository:
+  -  Open a terminal window and enter the command:
 ```
-aws s3 cp index.html s3://<Enter s3 bucket name>
+git clone <repository URL>
+```
+  -  Then navigate to the repository:
+```
+cd reading_tracker_apigateway
 ```
 
 ### S3 Bucket Creation and Configuration
 
-1. Create a bucket for the application:
+1. Navigate to s3 and create a bucket for the application:
 
   * **Name**:  Remember, names must be *globally unique*.  I recommend a name like `reading-tracker-<last name>`. 
-  * **Public Access**: Deselect "Block all public access" and then click the acknowledgement that appears below this option.
 
 2. After the buckets creation cp the html files into the bucket for later use:
 ```
 aws s3 cp index.html s3://<Enter s3 bucket name>
-
+```
+```
 aws s3 cp callback.html s3://<Enter s3 bucket name>
-
+```
+```
 aws s3 cp sign_out.html s3://<Enter s3 bucket name>
+```
+3. - After the creation of the s3 bucket head to the last line in the update_index.sh file and enter your bucket name:
+```
+aws s3 cp index.html s3://<Enter s3 bucket name>
 ```
   
 
@@ -51,7 +66,7 @@ reading_test_key
 - Choose Other type of secret.
 - In the Key/value pairs section, add your secret.
 ```
-For example: Key: googlebooks Value: <YOUR_GOOGLE_BOOKS_API_KEY>
+Key: googlebooks Value: <YOUR_GOOGLE_BOOKS_API_KEY>
 ```
 - Click Next and give the secret a name. For example: reading_test_key.
 - Optionally, set a description or other settings.
@@ -59,6 +74,7 @@ For example: Key: googlebooks Value: <YOUR_GOOGLE_BOOKS_API_KEY>
 - Review and click Store to save the secret.
 
 ### Utilize Amplify using management console
+- Navigate to the Amplify:
 1. click "create new app"
 2. Then select:
    - deploy without Git
@@ -71,11 +87,10 @@ For example: Key: googlebooks Value: <YOUR_GOOGLE_BOOKS_API_KEY>
 **Note any changes made to the files located in the bucket need to be updated in amplify by clicking on the "deploy updates" button after you select your application name**
 
 ### **Create a Cognito User Pool**
-1. Go into the create_cognito.py and fill out any info surrounded by <> examples are provided
-2. Then run:
-```
-./create_cognito.sh
-```
+1. Go into the create_cognito.py and fill out any info surrounded by <> examples are provided that can be used except the domain name which has to be UNIQUE
+   - **NOTE** Be very careful to fill out all info needed:
+   - If error occurs deletion of the UserPool has to be done through the management console
+   - Make sure to use YOUR Amplify URL that you made and add on the /callback.html and /logout.html endpoints for the callback and logout sections
 
 ### Script Permissions
 - If any script files give permission denied run:
@@ -178,15 +193,6 @@ If any updates are made to the apigateway,index.html or lambda functions use:
 ./update_system.sh
 ```
 This will update the index.html in the s3 bucket and delete and redeploy the apigateway and lambda functions to AWS
-
-## Testing
-
-### Test the Lambda Function
-Once the API and Lambda functions are set up, you can test them using the provided test script.
-
-```
-./test.sh
-```
 
 ## Tear Down
 
