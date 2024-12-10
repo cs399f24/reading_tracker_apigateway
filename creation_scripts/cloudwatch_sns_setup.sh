@@ -3,7 +3,7 @@
 AWS_REGION='us-east-1'
 
 # Get the Lambda function ARN
-SNS_ARN=$(aws lambda get-function --function-name snsLambda --query 'Configuration.FunctionArn' --output text)
+Lambda_SNS_ARN=$(aws lambda get-function --function-name snsLambda --query 'Configuration.FunctionArn' --output text)
 
 # Check if the ARN was retrieved successfully
 if [ -z "$SNS_ARN" ]; then
@@ -23,7 +23,7 @@ aws events put-rule \
 echo "Adding Lambda function as target for CloudWatch Rule..."
 aws events put-targets \
     --rule "ReadingTrackerRule" \
-    --targets "[{\"Id\":\"1\",\"Arn\":\"$SNS_ARN\"}]" \
+    --targets "[{\"Id\":\"1\",\"Arn\":\"$Lambda_SNS_ARN\"}]" \
     --region "$AWS_REGION"
 
 # Add permissions for CloudWatch to invoke Lambda
