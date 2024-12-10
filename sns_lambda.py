@@ -61,7 +61,7 @@ def ensure_subscriptions(topic_arn, emails):
 
 def lambda_handler(event, context):
         # Specify the topic name
-    topic_name = 'ReadingTrackerTopic'
+    topic_name = 'ReadingReminderTopic'
     
     # Retrieve the list of topics
     response = sns_client.list_topics()
@@ -102,5 +102,8 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             'statusCode': 500,
+            'body': f'Error: {e}'
+        }
+
             'body': f'Error: {e}'
         }
