@@ -6,7 +6,7 @@ AWS_REGION='us-east-1'
 Lambda_SNS_ARN=$(aws lambda get-function --function-name snsLambda --query 'Configuration.FunctionArn' --output text)
 
 # Check if the ARN was retrieved successfully
-if [ -z "$SNS_ARN" ]; then
+if [ -z "$Lambda_SNS_ARN" ]; then
     echo "Error: Unable to retrieve Lambda function ARN."
     exit 1
 fi
@@ -37,4 +37,5 @@ aws lambda add-permission \
     --source-arn "arn:aws:events:$AWS_REGION:$(aws sts get-caller-identity --query 'Account' --output text):rule/ReadingTrackerRule"
 
 echo "CloudWatch Rule Created and Linked to Lambda"
+
 
