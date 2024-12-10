@@ -1,7 +1,6 @@
 #!/bin/bash
 
 chmod +x ./creation_scripts/create_dynamodb.sh
-chmod +x ./creation_scripts/create_cognito.sh
 chmod +x ./creation_scripts/create_saved_books_lambda.sh
 chmod +x ./creation_scripts/create_search_books_lambda.sh
 chmod +x ./creation_scripts/create_shelved_books_lambda.sh
@@ -19,7 +18,7 @@ pip install -r requirements.txt
 
 ./creation_scripts/create_dynamodb.sh
 
-./creation_scripts/create_cognito.sh
+python3 create_cognito.py
 
 # Wait for the Cognito setup to complete (adjust time as needed)
 echo "Waiting for Cognito setup to complete..."
@@ -42,4 +41,5 @@ python3 create_books_api.py
 ./deploy.sh
 
 ./update_index.sh
+
 
