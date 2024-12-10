@@ -1,10 +1,11 @@
 # reading_tracker_apigateway
-![image](https://github.com/user-attachments/assets/17b86fbf-fdc4-48ba-9cd7-e557c7ff295a)
-
+<img width="1440" alt="Screenshot 2024-12-10 at 9 55 27 AM" src="https://github.com/user-attachments/assets/bf34eca5-fa9d-4611-9adc-93c289c0af78">
 
 ## Overview
 
-This project implements a web application where users can search for books using the Google Books API and store selected books in a DynamoDB table. The application serves a frontend hosted in an S3 bucket, with a backend implemented using Cloud9, AWS Lambda functions, API Gateway, and DynamoDB for data storage. The architecture is serverless, with Lambda functions handling book search, saving, and shelving operations.
+This project implements a web application that allows users to search for books using the Google Books API, with the API key securely stored in AWS Secrets Manager. Saved books are stored in a DynamoDB table for efficient data management. The application features a frontend hosted through AWS Amplify, with HTML files stored in an S3 bucket, and a backend built using AWS Cloud9, Lambda functions, API Gateway, SNS, and DynamoDB.
+
+The goal of the project is to create a Reading Tracker application using an AWS-based architecture. Users can sign in, search for books they have read, save their selections, and view a visual representation of their previously logged books. Additionally, users receive daily SNS notifications reminding them to update their reading activity, promoting consistent engagement.
 
 ## Project Setup and Configurations
 
@@ -104,88 +105,6 @@ chmod +x <name of script file>
 ```
 ./launch_project.sh
 ```
-## Individual Launch Steps:
-
-### Step 1: Clone the Repository
-
-Clone the repository into Cloud9
-
-### Step 2: Create a Virtual Environment
-
-Create a virtual environment to isolate dependencies.
-
-```
-python3 -m venv .venv
-```
-### Step 3: Activate the Virtual Environment
-Activate the virtual environment.
-
-```
-source .venv/bin/activate
-```
-
-### Step 4: Install the Required Dependencies
-Install the required dependencies from the requirements.txt file.
-
-```
-pip install -r requirements.txt
-```
-## Deploy
-
-### Step 5: Create Dynamodb table
-
-```
-./create_dynamodb.sh
-```
-
-### Step 6: Create Lambda Functions
-You need to create several Lambda functions for handling different aspects of the bookshelf application:
-
-Create the Lambda function for saving books.
-
-```
-./create_saved_books_lambda.1.sh
-```
-
-Create the Lambda function for searching books.
-
-```
-./create_search_books_lambda.sh
-```
-
-Create the Lambda function for shelving books.
-
-```
-./create_shelved_books_lambda.sh
-```
-
-### Step 7: Create the API Gateway
-Once the Lambda functions are set up, create the API Gateway and configure the backend API.
-
-```
-python create_books_api.py
-```
-
-### Step 8: Deploy the API
-Deploy the API to make it accessible.
-
-
-```
-./deploy.sh
-```
-
-### Step 9: Update the index.html in the S3 Bucket
-After deployment, update the index.html file in the S3 bucket to reflect the latest changes.
-
-```
-./update_index.sh
-```
-
-### Step 10: Got to s3 Bucket URL
-- Go to s3 click on the bucket you created for this process
-- Click on the properties tab
-- Scroll to the bottom of the page
-- Click the s3 bucket link
 
 ## Updating the System
 If any updates are made to the apigateway,index.html or lambda functions use:
