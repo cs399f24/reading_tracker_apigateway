@@ -104,6 +104,3 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': f'Error: {e}'
         }
-
-            'body': f'Error: {e}'
-        }
