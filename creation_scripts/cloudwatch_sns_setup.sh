@@ -15,7 +15,7 @@ fi
 echo "Creating CloudWatch Rule..."
 aws events put-rule \
     --name "ReadingTrackerRule" \
-    --schedule-expression "rate(1 minute)" \
+    --schedule-expression "rate(1 day)" \
     --state "ENABLED" \
     --region "$AWS_REGION"
 
